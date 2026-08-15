@@ -208,11 +208,11 @@ describe('completeTask', () => {
     expect(completed.completedAt).not.toBeNull();
   });
 
-  test('BUG: completeTask resets priority to medium even if it was high', () => {
+test('preserves the task priority when completing (fixed bug)', () => {
     const created = taskService.create({ title: 'Important task', priority: 'high' });
     const completed = taskService.completeTask(created.id);
 
-    expect(completed.priority).toBe('medium');
+    expect(completed.priority).toBe('high');
   });
 
   test('returns null when completing a non-existent task', () => {

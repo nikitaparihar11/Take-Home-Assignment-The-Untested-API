@@ -8,7 +8,9 @@ beforeEach(() => {
 
 describe('POST /tasks', () => {
   test('creates a task and returns 201', async () => {
-    const res = await request(app).post('/tasks').send({ title: 'New task' });
+    const res = await request(app)
+      .post('/tasks')
+      .send({ title: 'New task' });
 
     expect(res.status).toBe(201);
     expect(res.body.title).toBe('New task');
@@ -16,7 +18,9 @@ describe('POST /tasks', () => {
   });
 
   test('returns 400 when title is missing', async () => {
-    const res = await request(app).post('/tasks').send({ description: 'no title here' });
+    const res = await request(app)
+      .post('/tasks')
+      .send({ description: 'no title here' });
 
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/title/i);
@@ -89,7 +93,9 @@ describe('PUT /tasks/:id', () => {
   });
 
   test('returns 404 when updating a non-existent task', async () => {
-    const res = await request(app).put('/tasks/does-not-exist').send({ title: 'Whatever' });
+    const res = await request(app)
+      .put('/tasks/does-not-exist')
+      .send({ title: 'Whatever' });
 
     expect(res.status).toBe(404);
   });
@@ -99,7 +105,7 @@ describe('PUT /tasks/:id', () => {
 
     const res = await request(app)
       .put(`/tasks/${created.body.id}`)
-      .send({ title: '   ' });
+      .send({ title: '   ' }); // blank/whitespace title
 
     expect(res.status).toBe(400);
   });
@@ -121,6 +127,57 @@ describe('DELETE /tasks/:id', () => {
     const res = await request(app).delete('/tasks/does-not-exist');
 
     expect(res.status).toBe(404);
+  });
+});
+
+describe('PATCH /tasks/:id/assign', () => {
+  test('assigns a task to a given user', async () => {
+    const created = await request(app).post('/tasks').send({ title: 'Assign me' });
+
+    const res = await request(app)
+      .patch(`/tasks/${created.body.id}/assign`)
+      .send({ assignee: 'Nikita' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.assignee).toBe('Nikita');
+  });
+
+  test('returns 404 when assigning a non-existent task', async () => {
+    const res = await request(app)
+      .patch('/tasks/does-not-exist/assign')
+      .send({ assignee: 'Nikita' });
+
+    expect(res.status).toBe(404);
+  });
+
+  test('returns 400 when assignee is missing', async () => {
+    const created = await request(app).post('/tasks').send({ title: 'Assign me' });
+
+    const res = await request(app).patch(`/tasks/${created.body.id}/assign`).send({});
+
+    expect(res.status).toBe(400);
+  });
+
+  test('returns 400 when assignee is an empty string', async () => {
+    const created = await request(app).post('/tasks').send({ title: 'Assign me' });
+
+    const res = await request(app)
+      .patch(`/tasks/${created.body.id}/assign`)
+      .send({ assignee: '   ' });
+
+    expect(res.status).toBe(400);
+  });
+
+  test('allows reassigning an already-assigned task to someone else', async () => {
+    const created = await request(app).post('/tasks').send({ title: 'Assign me' });
+    await request(app).patch(`/tasks/${created.body.id}/assign`).send({ assignee: 'Nikita' });
+
+    const res = await request(app)
+      .patch(`/tasks/${created.body.id}/assign`)
+      .send({ assignee: 'Someone Else' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.assignee).toBe('Someone Else');
   });
 });
 
